@@ -1,0 +1,11 @@
+.idea
+build
+.gradle
+*.iml
+.DS_Store
+.kotlin
+kotlin-src
+.intellijPlatform
+local.properties
+certs
+*.pem

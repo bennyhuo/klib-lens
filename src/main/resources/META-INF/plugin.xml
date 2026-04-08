@@ -1,0 +1,27 @@
+<idea-plugin>
+    <id>com.bennyhuo.kotlin.kliblens</id>
+    <name>Klib Lens</name>
+    <vendor>Benny Huo</vendor>
+
+    <description><![CDATA[
+      Beautifies the output of decompiled Knm / Klib files by shortening cinterop annotations and removing redundant noisy compiler comments.
+    ]]></description>
+
+    <!-- please see https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html
+         on how to target different products -->
+    <depends>com.intellij.modules.platform</depends>
+    <depends>org.jetbrains.kotlin</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Add your extensions here -->
+        <fileEditorProvider implementation="com.bennyhuo.kotlin.kliblens.KlibViewerEditorProvider" />
+    </extensions>
+
+    <extensions defaultExtensionNs="org.jetbrains.kotlin">
+        <!-- Declare compatibility with both K1 and K2 Kotlin plugin modes.
+             This plugin only uses KotlinFileType (file type registry), not any
+             K1-specific analysis APIs (BindingContext, ResolutionFacade, etc.),
+             so it is safe to enable in K2 mode. -->
+        <supportsKotlinPluginMode supportsK1="true" supportsK2="true"/>
+    </extensions>
+</idea-plugin>
