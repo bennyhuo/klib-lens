@@ -1,5 +1,8 @@
 # Klib Lens
 
+[![JetBrains Plugins](https://img.shields.io/jetbrains/plugin/v/31148-klib-lens.svg)](https://plugins.jetbrains.com/plugin/31148-klib-lens)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Klib Lens is an IntelliJ IDEA plugin designed to enhance the readability of decompiled Kotlin Library (`.klib` / `.knm`) metadata files. It intercepts the default viewer and cleans up the overly verbose decompiled code, providing a much more idiomatic and human-readable Kotlin source view.
 
 ## Features
@@ -52,14 +55,26 @@ class timespec(rawPtr: NativePtr) : CStructVar {
 
 ## Installation
 
-You can build it directly from source using Gradle to output the installable plugin ZIP archive:
+### From JetBrains Marketplace
+
+1. Open **Settings/Preferences** (`⌘,` or `Ctrl+Alt+S`) in your IDE.
+2. Navigate to **Plugins**.
+3. Select the **Marketplace** tab.
+4. Search for **Klib Lens**.
+5. Click **Install**.
+
+Alternatively, you can visit the [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/31148-klib-lens) and click **Install to IDE**.
+
+### From Source
+
+Build the installable plugin ZIP archive using Gradle:
 
 ```bash
 ./gradlew buildPlugin
 ```
 
-This will automatically configure an IDE and output `klib-lens-1.0.0.zip` under `build/distributions/`.
-You can install this into your IDE manually via:
+This will output `klib-lens-<version>.zip` under `build/distributions/`.
+Install it manually via:
 **Settings/Preferences > Plugins > ⚙️ (Gear Icon) > Install Plugin from Disk...**
 
 ## License
