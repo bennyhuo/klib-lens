@@ -47,6 +47,7 @@ class KlibViewerEditorProvider : FileEditorProvider, DumbAware {
 
         // Create the light file and editor immediately with partially formatted text
         val lightFile = LightVirtualFile(file.name, KotlinFileType.INSTANCE, text)
+        lightFile.originalFile = file
         // Note: Do NOT mark as read-only here, otherwise CodeStyleManager will skip formatting!
         
         val editor = TextEditorProvider.getInstance().createEditor(project, lightFile) as TextEditor
@@ -138,6 +139,6 @@ class KlibViewerTextEditorWrapper(
     }
 
     override fun getFile(): VirtualFile {
-        return this.delegate.file
+        return originalFile
     }
 }
