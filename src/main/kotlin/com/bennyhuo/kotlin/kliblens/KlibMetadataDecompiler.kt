@@ -92,6 +92,9 @@ class KlibMetadataDecompiler(private val project: Project) {
         // Step 6: Remove redundant 'public' and 'final' modifiers (Kotlin defaults)
         text = removeRedundantModifiers(text)
 
+        // Step 7: Remove redundant 'Unit' return types
+        text = removeRedundantUnitReturnType(text)
+
         text = text.lines().joinToString("\n") { it.trimEnd() }
         text = text.replace(Regex("""\n{3,}"""), "\n\n")
 
@@ -158,6 +161,34 @@ class KlibMetadataDecompiler(private val project: Project) {
             }
         }
 
+        return applyReplacements(text, replacements)
+    }
+
+    /**
+     * Remove redundant explicit `Unit` return types from functions.
+     * `fun setX(x: Int): Unit` becomes `fun setX(x: Int)`.
+     */
+    private fun removeRedundantUnitReturnType(text: String): String {
+        val ktFile = PsiFileFactory.getInstance(project)
+            .createFileFromText("temp.kt", KotlinLanguage.INSTANCE, text) as? KtFile ?: return text
+
+        val replacements = mutableListOf<Triple<Int, Int, String>>()
+
+        PsiTreeUtil.collectElementsOfType(ktFile, KtNamedFunction::class.java).forEach { func ->
+            val typeRef = func.typeReference
+            if (typeRef != null && (typeRef.text == "Unit" || typeRef.text == "kotlin.Unit")) {
+                val colon = func.colon
+                if (colon != null) {
+                    var start = colon.textRange.startOffset
+                    val end = typeRef.textRange.endOffset
+                    // Remove preceding spaces before colon
+                    while (start > 0 && text[start - 1] == ' ') {
+                        start--
+                    }
+                    replacements += Triple(start, end, "")
+                }
+            }
+        }
         return applyReplacements(text, replacements)
     }
 
