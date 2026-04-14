@@ -35,7 +35,7 @@ private val LOG = Logger.getInstance(KlibViewerEditorProvider::class.java)
 class KlibViewerEditorProvider : FileEditorProvider, DumbAware {
 
     override fun accept(project: Project, file: VirtualFile): Boolean {
-        return file.extension == "knm" || file.extension == "kotlin_builtins"
+        return file.isKnmFile()
     }
 
     override fun createEditor(project: Project, file: VirtualFile): FileEditor {
@@ -109,14 +109,20 @@ class KlibViewerTextEditorWrapper(
         val targetElementInOriginal = when (navigatable) {
             is PsiElement -> navigatable
             is OpenFileDescriptor -> {
-                val originalPsi = PsiManager.getInstance(project).findFile(originalFile) as? KtFile
-                originalPsi?.findElementAt(navigatable.offset)
+                val cachedSymbol = KlibLensNavigationCache.pendingNavigations.remove(navigatable.file)
+                if (cachedSymbol != null) {
+                    cachedSymbol
+                } else {
+                    val originalPsi = PsiManager.getInstance(project).findFile(originalFile) as? KtFile
+                    originalPsi?.findElementAt(navigatable.offset)
+                }
             }
             else -> null
         }
 
         if (targetElementInOriginal != null) {
-            val originalDecl = PsiTreeUtil.getParentOfType(targetElementInOriginal, KtNamedDeclaration::class.java, false)
+            val originalDecl = targetElementInOriginal as? KtNamedDeclaration
+                ?: PsiTreeUtil.getParentOfType(targetElementInOriginal, KtNamedDeclaration::class.java, false)
             if (originalDecl != null) {
                 // Ensure all formatting changes are committed to PSI before searching
                 PsiDocumentManager.getInstance(project).commitDocument(delegate.editor.document)
