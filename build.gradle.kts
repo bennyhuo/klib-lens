@@ -65,6 +65,12 @@ intellijPlatform {
         """.trimIndent()
     }
     
+    pluginVerification { 
+        ides { 
+            recommended()
+        }
+    }
+    
     publishing {
         token = providers.environmentVariable("PUBLISH_TOKEN")
         channels = listOf("default") 
