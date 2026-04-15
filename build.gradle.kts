@@ -32,6 +32,7 @@ dependencies {
             val intellijVersion = localProperties.getProperty("intellij.version") ?: "2025.1"
             intellijIdeaCommunity(intellijVersion)
         }
+        bundledPlugin("com.intellij.java")
         bundledPlugin("org.jetbrains.kotlin")
     }
     testImplementation(kotlin("test"))
