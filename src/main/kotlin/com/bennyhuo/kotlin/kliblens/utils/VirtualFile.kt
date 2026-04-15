@@ -1,4 +1,4 @@
-package com.bennyhuo.kotlin.kliblens
+package com.bennyhuo.kotlin.kliblens.utils
 
 import com.intellij.openapi.vfs.VirtualFile
 

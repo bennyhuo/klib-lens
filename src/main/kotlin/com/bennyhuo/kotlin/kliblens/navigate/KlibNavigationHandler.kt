@@ -1,4 +1,4 @@
-package com.bennyhuo.kotlin.kliblens
+package com.bennyhuo.kotlin.kliblens.navigate
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile

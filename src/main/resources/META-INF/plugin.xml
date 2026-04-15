@@ -28,7 +28,7 @@
     <extensions defaultExtensionNs="com.intellij">
         <!-- Add your extensions here -->
         <fileEditorProvider implementation="com.bennyhuo.kotlin.kliblens.KlibViewerEditorProvider" />
-        <gotoDeclarationHandler implementation="com.bennyhuo.kotlin.kliblens.KlibGotoDeclarationHandler"/>
+        <gotoDeclarationHandler implementation="com.bennyhuo.kotlin.kliblens.navigate.KlibGotoDeclarationHandler"/>
     </extensions>
 
     <extensions defaultExtensionNs="org.jetbrains.kotlin">

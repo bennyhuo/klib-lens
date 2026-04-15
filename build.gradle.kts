@@ -4,7 +4,7 @@ import java.io.FileInputStream
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "2.3.10"
-    id("org.jetbrains.intellij.platform") version "2.13.1"
+    id("org.jetbrains.intellij.platform") version "2.14.0"
 }
 
 val localProperties = Properties()
@@ -30,7 +30,7 @@ dependencies {
             local(intellijLocalPath)
         } else {
             val intellijVersion = localProperties.getProperty("intellij.version") ?: "2025.1"
-            intellijIdeaCommunity(intellijVersion)
+            intellijIdea(intellijVersion)
         }
         bundledPlugin("com.intellij.java")
         bundledPlugin("org.jetbrains.kotlin")

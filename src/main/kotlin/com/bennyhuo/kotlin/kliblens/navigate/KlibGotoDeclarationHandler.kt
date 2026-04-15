@@ -1,5 +1,6 @@
-package com.bennyhuo.kotlin.kliblens
+package com.bennyhuo.kotlin.kliblens.navigate
 
+import com.bennyhuo.kotlin.kliblens.utils.isKnmFile
 import com.intellij.codeInsight.navigation.actions.GotoDeclarationHandler
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.vfs.VirtualFile
