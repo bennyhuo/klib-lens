@@ -1,21 +1,23 @@
-package com.bennyhuo.kotlin.kliblens
+package com.bennyhuo.kotlin.kliblens.metadata
 
-import com.intellij.openapi.diagnostic.Logger
+import com.bennyhuo.kotlin.kliblens.LOG
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiComment
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.PsiManager
 import com.intellij.psi.util.PsiTreeUtil
-import org.jetbrains.kotlin.analysis.api.analyze
-import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
-import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
-import org.jetbrains.kotlin.analysis.api.symbols.markers.KaAnnotatedSymbol
 import org.jetbrains.kotlin.idea.KotlinLanguage
 import org.jetbrains.kotlin.idea.base.psi.kotlinFqName
-import org.jetbrains.kotlin.psi.*
-
-private val LOG = Logger.getInstance(KlibMetadataDecompiler::class.java)
+import org.jetbrains.kotlin.psi.KtAnnotationEntry
+import org.jetbrains.kotlin.psi.KtConstructor
+import org.jetbrains.kotlin.psi.KtDeclaration
+import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
+import org.jetbrains.kotlin.psi.KtFile
+import org.jetbrains.kotlin.psi.KtModifierList
+import org.jetbrains.kotlin.psi.KtNamedFunction
+import org.jetbrains.kotlin.psi.KtPrimaryConstructor
+import org.jetbrains.kotlin.psi.KtUserType
 
 class KlibMetadataDecompiler(private val project: Project) {
 
@@ -318,21 +320,42 @@ class KlibMetadataDecompiler(private val project: Project) {
         return null
     }
 
-    @OptIn(KaAllowAnalysisOnEdt::class)
+    /**
+     * Resolves the fully-qualified name of an annotation using only PSI-level information
+     * (the annotation's type text and the containing file's import directives).
+     *
+     * This avoids calling the K2 Analysis API on temporary PSI files that have no proper
+     * module context, which would trigger [IllegalStateException] in `FirNativeOverrideChecker`
+     * or resolution failures in `LLFirNotUnderContentRootResolvableModuleSession`.
+     */
     private fun getAnnotationClassFqName(entry: KtAnnotationEntry): String? {
-        val parentDeclaration = PsiTreeUtil.getParentOfType(entry, KtDeclaration::class.java) ?: return null
-        return try {
-            allowAnalysisOnEdt {
-                analyze(parentDeclaration) {
-                    val symbol = parentDeclaration.symbol as? KaAnnotatedSymbol ?: return@analyze null
-                    val annotation = symbol.annotations.find { it.psi == entry }
-                    annotation?.classId?.asSingleFqName()?.asString()
-                }
+        // Extract the annotation name from its type reference (e.g., "kotlin.annotation.Target" or "Target")
+        val annotationName = entry.typeReference?.text?.replace("\\s+".toRegex(), "") ?: return null
+
+        // If the annotation name already looks fully-qualified (contains a dot), return as-is
+        if ('.' in annotationName) return annotationName
+
+        // Otherwise, try to resolve via the file's import directives
+        val ktFile = entry.containingKtFile
+        for (importDirective in ktFile.importDirectives) {
+            val importedFqName = importDirective.importedFqName?.asString() ?: continue
+            if (importDirective.isAllUnder) {
+                // Star import: e.g., "import kotlin.annotation.*"
+                // We can't determine the exact FQN from a star import alone, skip it
+                continue
             }
-        } catch (e: Exception) {
-            LOG.warn("[KLIB-LENS] K2 API failed to resolve annotation: ${entry.text}", e)
-            null
+            val alias = importDirective.aliasName
+            if (alias != null) {
+                // Aliased import: e.g., "import kotlin.annotation.Target as Tgt"
+                if (alias == annotationName) return importedFqName
+            } else {
+                // Regular import: e.g., "import kotlin.annotation.Target"
+                if (importedFqName.endsWith(".$annotationName")) return importedFqName
+            }
         }
+
+        // Could not resolve to an FQN — return null so the caller falls back to simple-name matching
+        return null
     }
 
     private data class FqNameInfo(val simpleName: String, val importPath: String)
