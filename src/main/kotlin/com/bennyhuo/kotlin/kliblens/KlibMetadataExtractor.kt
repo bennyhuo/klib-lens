@@ -6,6 +6,7 @@ import org.jetbrains.kotlin.library.metadata.KlibMetadataProtoBuf
 import org.jetbrains.kotlin.library.metadata.KlibMetadataSerializerProtocol
 import org.jetbrains.kotlin.metadata.ProtoBuf
 import org.jetbrains.kotlin.metadata.deserialization.NameResolverImpl
+import org.jetbrains.kotlin.protobuf.GeneratedMessageLite
 
 class KlibMetadataExtractor(val knmFile: VirtualFile) {
     private val LOG = Logger.getInstance(KlibMetadataExtractor::class.java)
@@ -18,37 +19,69 @@ class KlibMetadataExtractor(val knmFile: VirtualFile) {
             val packageFragment = ProtoBuf.PackageFragment.parseFrom(knmFile.contentsToByteArray(), ext)
             val nameResolver = NameResolverImpl(packageFragment.strings, packageFragment.qualifiedNames)
 
-            val pkgName = packageFragment.getExtension(KlibMetadataProtoBuf.fqName) ?: ""
-            
-            processPackageProperties(packageFragment, nameResolver, pkgName)
-            processClasses(packageFragment, nameResolver)
+            processPackage(packageFragment, nameResolver)
+            for (cls in packageFragment.class_List) {
+                processClass(cls, nameResolver)
+            }
         } catch (e: Exception) {
             LOG.info("Failed to parse KNM metadata for ${knmFile.path}", e)
         }
     }
 
-    private fun processPackageProperties(
-        packageFragment: ProtoBuf.PackageFragment,
-        nameResolver: NameResolverImpl,
-        pkgName: String
-    ) {
-        val pkgProperties = if (packageFragment.hasPackage()) packageFragment.`package`.propertyList else emptyList()
-        processProperties(pkgProperties, nameResolver, pkgName)
+    private fun processPackage(packageFragment: ProtoBuf.PackageFragment, nameResolver: NameResolverImpl) {
+        if (!packageFragment.hasPackage()) return
+        
+        val pkgName = packageFragment.getExtension(KlibMetadataProtoBuf.fqName) ?: ""
+        val pkg = packageFragment.`package`
+        
+        processDeclarations(
+            pkg.propertyList,
+            { nameResolver.getString(it.name) },
+            nameResolver,
+            pkgName,
+            KlibMetadataProtoBuf.propertyAnnotation,
+            KlibMetadataProtoBuf.propertyGetterAnnotation,
+            KlibMetadataProtoBuf.propertySetterAnnotation
+        )
+        processDeclarations(
+            pkg.functionList,
+            { nameResolver.getString(it.name) },
+            nameResolver,
+            pkgName,
+            KlibMetadataProtoBuf.functionAnnotation
+        )
     }
 
-    private fun processClasses(
-        packageFragment: ProtoBuf.PackageFragment,
-        nameResolver: NameResolverImpl
-    ) {
-        for (currClass in packageFragment.class_List) {
-            val classFqName = getNormalizedFqName(currClass.fqName, nameResolver)
-            processProperties(currClass.propertyList, nameResolver, classFqName)
-            
-            val classAnns = currClass.getExtension(KlibMetadataProtoBuf.classAnnotation)
-            collectAnnotations(classAnns, classFqName, nameResolver)
-        }
-    }
+    private fun processClass(cls: ProtoBuf.Class, nameResolver: NameResolverImpl) {
+        val classFqName = getNormalizedFqName(cls.fqName, nameResolver)
+        processDeclarations(
+            cls.constructorList,
+            { "init" },
+            nameResolver,
+            classFqName,
+            KlibMetadataProtoBuf.constructorAnnotation
+        )
+        processDeclarations(
+            cls.propertyList,
+            { nameResolver.getString(it.name) },
+            nameResolver,
+            classFqName,
+            KlibMetadataProtoBuf.propertyAnnotation,
+            KlibMetadataProtoBuf.propertyGetterAnnotation,
+            KlibMetadataProtoBuf.propertySetterAnnotation
+        )
+        processDeclarations(
+            cls.functionList,
+            { nameResolver.getString(it.name) },
+            nameResolver,
+            classFqName,
+            KlibMetadataProtoBuf.functionAnnotation
+        )
 
+        val classAnns = cls.getExtension(KlibMetadataProtoBuf.classAnnotation)
+        collectAnnotations(classAnns, classFqName, nameResolver)
+    }
+    
     private fun collectAnnotations(
         annotations: List<ProtoBuf.Annotation>,
         targetFqName: String,
@@ -62,23 +95,20 @@ class KlibMetadataExtractor(val knmFile: VirtualFile) {
         }
     }
 
-    private fun processProperties(
-        props: List<ProtoBuf.Property>,
+    private fun <T : GeneratedMessageLite.ExtendableMessage<T>> processDeclarations(
+        declarations: List<T>,
+        declarationName: (T) -> String,
         nameResolver: NameResolverImpl,
-        ownerFqName: String
+        ownerFqName: String,
+        vararg annotationExtensions: GeneratedMessageLite.GeneratedExtension<T, List<ProtoBuf.Annotation>>
     ) {
-        for (p in props) {
-            val propName = nameResolver.getString(p.name)
-            val fqName = if (ownerFqName.isEmpty()) propName else "$ownerFqName.$propName"
-            
-            val propertyAnnotations = (p.getExtension(KlibMetadataProtoBuf.propertyAnnotation) as? List<*>)
-                ?.filterIsInstance<ProtoBuf.Annotation>() ?: emptyList()
-            val getterAnnotations = (p.getExtension(KlibMetadataProtoBuf.propertyGetterAnnotation) as? List<*>)
-                ?.filterIsInstance<ProtoBuf.Annotation>() ?: emptyList()
-            val setterAnnotations = (p.getExtension(KlibMetadataProtoBuf.propertySetterAnnotation) as? List<*>)
-                ?.filterIsInstance<ProtoBuf.Annotation>() ?: emptyList()
-            
-            collectAnnotations(propertyAnnotations + getterAnnotations + setterAnnotations, fqName, nameResolver)
+        for (declaration in declarations) {
+            val name = declarationName(declaration)
+            val fqName = if (ownerFqName.isEmpty()) name else "$ownerFqName.$name"
+            val annotations = annotationExtensions.flatMap { declaration.getExtension(it) as? List<Any> ?: emptyList() }
+                .filterIsInstance<ProtoBuf.Annotation>()
+           
+            collectAnnotations(annotations, fqName, nameResolver)
         }
     }
 

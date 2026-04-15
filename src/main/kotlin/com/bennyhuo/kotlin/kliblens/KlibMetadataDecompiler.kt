@@ -306,7 +306,11 @@ class KlibMetadataDecompiler(private val project: Project) {
 
     private fun getArguments(entry: KtAnnotationEntry, extractor: KlibMetadataExtractor): String? {
         val parentDeclaration = PsiTreeUtil.getParentOfType(entry, KtDeclaration::class.java)
-        val declFqName = parentDeclaration?.kotlinFqName?.asString() ?: return null
+        val declFqName = if (parentDeclaration is KtConstructor<*>) {
+            "${parentDeclaration.getContainingClassOrObject().fqName}.init"
+        } else {
+            parentDeclaration?.kotlinFqName?.asString() ?: return null
+        }
         val annClassFqName = getAnnotationClassFqName(entry)
         if (annClassFqName != null) return extractor.getAnnotationArgs(declFqName, annClassFqName)
         val annSimpleName = entry.typeReference?.text?.replace("\\s+".toRegex(), "")
