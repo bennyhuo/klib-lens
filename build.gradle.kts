@@ -29,7 +29,7 @@ dependencies {
         if (!intellijLocalPath.isNullOrBlank() && file(intellijLocalPath).exists()) {
             local(intellijLocalPath)
         } else {
-            val intellijVersion = localProperties.getProperty("intellij.version") ?: "2025.1"
+            val intellijVersion = localProperties.getProperty("intellij.version") ?: "2026.1"
             intellijIdea(intellijVersion)
         }
         bundledPlugin("com.intellij.java")
