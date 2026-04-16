@@ -61,7 +61,9 @@ class KnmFile(
 
         val text = decompiler.decompile(originalFile, extractor)
 
-        val lightFile = LightVirtualFile(originalFile.name, KotlinFileType.INSTANCE, text)
+        // Workaround: Mask the .knm file as .kt to trigger the IDE's Kotlin code analysis and highlighting.
+        val lightFileName = originalFile.nameWithoutExtension + ".kt"
+        val lightFile = LightVirtualFile(lightFileName, KotlinFileType.INSTANCE, text)
         lightFile.originalFile = originalFile
 
         project.invokeLater {
@@ -88,6 +90,31 @@ class KnmFile(
 
     @OptIn(KaExperimentalApi::class, KaPlatformInterface::class)
     private fun highlightFile() {
+        // Workaround: Create a custom KaDanglingFileModule that delegates to KaDanglingFileModuleImpl
+        // but overrides targetPlatform to avoid pure NativePlatform. This makes the session factory
+        // selector (LLFirSessionCache.createPlatformAwareSessionFactory) choose LLFirCommonSessionFactory
+        // instead of LLFirNativeSessionFactory, avoiding the buggy FirNativeOverrideChecker.
+        //
+        // This pattern is used by Kotlin itself in KaFirCompilerFacility.createJvmDanglingFileModule().
+        try {
+            val libraryModule = KotlinProjectStructureProvider.getModule(project, originalPsiFile, useSiteModule = null)
+            val baseModule = KaDanglingFileModuleImpl(
+                listOf(newPsiFile),
+                libraryModule,
+                KaDanglingFileResolutionMode.PREFER_SELF,
+            )
+
+            val isNativePlatform = libraryModule.targetPlatform.all { it is NativePlatform }
+            newPsiFile.explicitModule = if (isNativePlatform) {
+                // Wrap with overridden targetPlatform to avoid LLFirNativeSessionFactory
+                NonNativeDanglingFileModule(baseModule)
+            } else {
+                baseModule
+            }
+        } catch (e: Exception) {
+            LOG.warn("[KLIB-LENS] Failed to set up analysis context for $newFile", e)
+        }
+        
         // Set highlighting level to ESSENTIAL to keep semantic colors but skip heavy inspections
         HighlightLevelUtil.forceRootHighlighting(newPsiFile, FileHighlightingSetting.ESSENTIAL)
     }
