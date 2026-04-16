@@ -1,7 +1,9 @@
 package com.bennyhuo.kotlin.kliblens.module
 
+import com.intellij.psi.search.GlobalSearchScope
 import org.jetbrains.kotlin.analysis.api.KaPlatformInterface
 import org.jetbrains.kotlin.analysis.api.projectStructure.KaDanglingFileModule
+import org.jetbrains.kotlin.analysis.api.projectStructure.KaModule
 import org.jetbrains.kotlin.platform.SimplePlatform
 import org.jetbrains.kotlin.platform.TargetPlatform
 
@@ -36,4 +38,9 @@ class NonNativeDanglingFileModule(
         override val targetName: String get() = "syntheticCommon"
     }
 
+    override val isValid: Boolean
+        get() = delegate.isValid
+
+    override val baseContentScope: GlobalSearchScope
+        get() = delegate.baseContentScope
 }
