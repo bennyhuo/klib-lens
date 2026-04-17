@@ -51,7 +51,7 @@ intellijPlatform {
             name = "Benny Huo"
         }
         ideaVersion {
-            sinceBuild = "251"
+            sinceBuild = "253"
             untilBuild = "262.*"
         }
         
