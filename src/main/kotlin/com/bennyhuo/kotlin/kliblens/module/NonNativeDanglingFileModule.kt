@@ -39,12 +39,6 @@ class NonNativeDanglingFileModule(
         override val targetName: String get() = "syntheticCommon"
     }
 
-    override val isValid: Boolean
-        get() = delegate.isValid
-
-    override val baseContentScope: GlobalSearchScope
-        get() = delegate.baseContentScope
-
     @Deprecated(
         "Use 'files' instead.",
         replaceWith = ReplaceWith("files.single()", "kotlin.collections.single")
