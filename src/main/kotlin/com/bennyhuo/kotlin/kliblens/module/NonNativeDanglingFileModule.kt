@@ -6,6 +6,7 @@ import org.jetbrains.kotlin.analysis.api.projectStructure.KaDanglingFileModule
 import org.jetbrains.kotlin.analysis.api.projectStructure.KaModule
 import org.jetbrains.kotlin.platform.SimplePlatform
 import org.jetbrains.kotlin.platform.TargetPlatform
+import org.jetbrains.kotlin.psi.KtFile
 
 /**
  * A wrapper around [KaDanglingFileModule] that overrides [targetPlatform] to avoid
@@ -43,4 +44,11 @@ class NonNativeDanglingFileModule(
 
     override val baseContentScope: GlobalSearchScope
         get() = delegate.baseContentScope
+
+    @Deprecated(
+        "Use 'files' instead.",
+        replaceWith = ReplaceWith("files.single()", "kotlin.collections.single")
+    )
+    override val file: KtFile
+        get() = delegate.files.single()
 }
