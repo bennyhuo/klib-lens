@@ -14,7 +14,7 @@ if (localPropertiesFile.exists()) {
 }
 
 group = "com.bennyhuo.kotlin.kliblens"
-version = "1.1.1-252"
+version = "1.1.1-251"
 
 repositories {
     mavenCentral()
@@ -52,7 +52,7 @@ intellijPlatform {
         }
         ideaVersion {
             sinceBuild = "251"
-            untilBuild = "252.*"
+            untilBuild = "251.*"
         }
         
         changeNotes = """
