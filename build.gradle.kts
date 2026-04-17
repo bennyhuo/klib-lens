@@ -14,7 +14,7 @@ if (localPropertiesFile.exists()) {
 }
 
 group = "com.bennyhuo.kotlin.kliblens"
-version = "1.1.1"
+version = "1.1.1-252"
 
 repositories {
     mavenCentral()
@@ -29,7 +29,7 @@ dependencies {
         if (!intellijLocalPath.isNullOrBlank() && file(intellijLocalPath).exists()) {
             local(intellijLocalPath)
         } else {
-            val intellijVersion = localProperties.getProperty("intellij.version") ?: "2025.1"
+            val intellijVersion = localProperties.getProperty("intellij.version") ?: "2025.2"
             intellijIdea(intellijVersion)
         }
         bundledPlugin("com.intellij.java")
@@ -51,7 +51,7 @@ intellijPlatform {
             name = "Benny Huo"
         }
         ideaVersion {
-            sinceBuild = "251"
+            sinceBuild = "252"
             untilBuild = "252.*"
         }
         
