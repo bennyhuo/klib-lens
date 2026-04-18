@@ -1,6 +1,7 @@
 package com.bennyhuo.kotlin.kliblens.metadata
 
 import com.bennyhuo.kotlin.kliblens.LOG
+import com.bennyhuo.kotlin.kliblens.utils.uniqueName
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiComment
@@ -8,9 +9,7 @@ import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.PsiManager
 import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.kotlin.idea.KotlinLanguage
-import org.jetbrains.kotlin.idea.base.psi.kotlinFqName
 import org.jetbrains.kotlin.psi.KtAnnotationEntry
-import org.jetbrains.kotlin.psi.KtConstructor
 import org.jetbrains.kotlin.psi.KtDeclaration
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtFile
@@ -308,11 +307,8 @@ class KlibMetadataDecompiler(private val project: Project) {
 
     private fun getArguments(entry: KtAnnotationEntry, extractor: KlibMetadataExtractor): String? {
         val parentDeclaration = PsiTreeUtil.getParentOfType(entry, KtDeclaration::class.java)
-        val declFqName = if (parentDeclaration is KtConstructor<*>) {
-            "${parentDeclaration.getContainingClassOrObject().fqName}.init"
-        } else {
-            parentDeclaration?.kotlinFqName?.asString() ?: return null
-        }
+        val declFqName = parentDeclaration?.uniqueName() ?: return null
+
         val annClassFqName = getAnnotationClassFqName(entry)
         if (annClassFqName != null) return extractor.getAnnotationArgs(declFqName, annClassFqName)
         val annSimpleName = entry.typeReference?.text?.replace("\\s+".toRegex(), "")
