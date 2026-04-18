@@ -1,5 +1,6 @@
 package com.bennyhuo.kotlin.kliblens.metadata
 
+import com.bennyhuo.kotlin.kliblens.utils.uniqueName
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.vfs.VirtualFile
 import org.jetbrains.kotlin.library.metadata.KlibMetadataProtoBuf
@@ -36,7 +37,7 @@ class KlibMetadataExtractor(val knmFile: VirtualFile) {
         
         processDeclarations(
             pkg.propertyList,
-            { nameResolver.getString(it.name) },
+            { it.uniqueName(nameResolver) },
             nameResolver,
             pkgName,
             KlibMetadataProtoBuf.propertyAnnotation,
@@ -45,7 +46,7 @@ class KlibMetadataExtractor(val knmFile: VirtualFile) {
         )
         processDeclarations(
             pkg.functionList,
-            { nameResolver.getString(it.name) },
+            { it.uniqueName(nameResolver) },
             nameResolver,
             pkgName,
             KlibMetadataProtoBuf.functionAnnotation
@@ -56,14 +57,14 @@ class KlibMetadataExtractor(val knmFile: VirtualFile) {
         val classFqName = getNormalizedFqName(cls.fqName, nameResolver)
         processDeclarations(
             cls.constructorList,
-            { "init" },
+            { it.uniqueName(nameResolver) },
             nameResolver,
             classFqName,
             KlibMetadataProtoBuf.constructorAnnotation
         )
         processDeclarations(
             cls.propertyList,
-            { nameResolver.getString(it.name) },
+            { it.uniqueName(nameResolver) },
             nameResolver,
             classFqName,
             KlibMetadataProtoBuf.propertyAnnotation,
@@ -72,7 +73,7 @@ class KlibMetadataExtractor(val knmFile: VirtualFile) {
         )
         processDeclarations(
             cls.functionList,
-            { nameResolver.getString(it.name) },
+            { it.uniqueName(nameResolver) },
             nameResolver,
             classFqName,
             KlibMetadataProtoBuf.functionAnnotation
@@ -81,6 +82,7 @@ class KlibMetadataExtractor(val knmFile: VirtualFile) {
         val classAnns = cls.getExtension(KlibMetadataProtoBuf.classAnnotation)
         collectAnnotations(classAnns, classFqName, nameResolver)
     }
+
     
     private fun collectAnnotations(
         annotations: List<ProtoBuf.Annotation>,
