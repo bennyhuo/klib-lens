@@ -3,7 +3,7 @@ package com.bennyhuo.kotlin.kliblens
 import com.bennyhuo.kotlin.kliblens.file.KnmFile
 import com.bennyhuo.kotlin.kliblens.navigate.KlibLensNavigationCache
 import com.bennyhuo.kotlin.kliblens.navigate.KlibNavigationHandler
-import com.intellij.openapi.fileEditor.FileEditor
+import com.intellij.ide.structureView.StructureViewBuilder
 import com.intellij.openapi.fileEditor.NavigatableFileEditor
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.fileEditor.TextEditor
@@ -17,7 +17,7 @@ import org.jetbrains.kotlin.psi.KtNamedDeclaration
 class KlibViewerTextEditorWrapper(
     private val delegate: TextEditor,
     private val knmFile: KnmFile,
-) : FileEditor by delegate, NavigatableFileEditor {
+) : TextEditor by delegate, NavigatableFileEditor {
 
     private val project: Project
         get() = knmFile.project
@@ -55,6 +55,10 @@ class KlibViewerTextEditorWrapper(
         }
 
         delegate.navigateTo(navigatable)
+    }
+
+    override fun getStructureViewBuilder(): StructureViewBuilder? {
+        return delegate.structureViewBuilder
     }
 
     override fun getFile(): VirtualFile {
