@@ -14,7 +14,7 @@ if (localPropertiesFile.exists()) {
 }
 
 group = "com.bennyhuo.kotlin.kliblens"
-version = "1.1.1-251"
+version = "1.1.2-251"
 
 repositories {
     mavenCentral()
