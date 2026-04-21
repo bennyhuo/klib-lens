@@ -32,10 +32,6 @@
     </extensions>
 
     <extensions defaultExtensionNs="org.jetbrains.kotlin">
-        <!-- Declare compatibility with both K1 and K2 Kotlin plugin modes.
-             This plugin only uses KotlinFileType (file type registry), not any
-             K1-specific analysis APIs (BindingContext, ResolutionFacade, etc.),
-             so it is safe to enable in K2 mode. -->
-        <supportsKotlinPluginMode supportsK1="true" supportsK2="true"/>
+        <supportsKotlinPluginMode supportsK1="false" supportsK2="true"/>
     </extensions>
 </idea-plugin>
