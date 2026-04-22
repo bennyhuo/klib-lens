@@ -11,6 +11,7 @@ import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.pom.Navigatable
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.kotlin.psi.KtNamedDeclaration
@@ -47,6 +48,9 @@ class KlibViewerTextEditorWrapper(
         val originalDecl = targetElementInOriginal as? KtNamedDeclaration
             ?: PsiTreeUtil.getParentOfType(targetElementInOriginal, KtNamedDeclaration::class.java, false)
         if (originalDecl != null) {
+            // Ensure all formatting changes are committed to PSI before searching
+            // This is useful when navigating to the file for the first time. 
+            PsiDocumentManager.getInstance(project).commitDocument(delegate.editor.document)
             val targetDecl = navigationHandler.findCounterpart(knmFile.newPsiFile, originalDecl)
             if (targetDecl != null) {
                 val newDescriptor = OpenFileDescriptor(project, delegate.file, targetDecl.textOffset)
