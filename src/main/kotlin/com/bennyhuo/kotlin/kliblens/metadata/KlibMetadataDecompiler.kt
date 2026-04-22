@@ -11,28 +11,14 @@ import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.kotlin.idea.KotlinLanguage
 import org.jetbrains.kotlin.psi.KtAnnotationEntry
 import org.jetbrains.kotlin.psi.KtDeclaration
-import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtModifierList
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtPrimaryConstructor
-import org.jetbrains.kotlin.psi.KtUserType
 
 class KlibMetadataDecompiler(private val project: Project) {
 
     companion object {
-        /** Kotlin default-imported packages that never need explicit import statements. */
-        private val KOTLIN_DEFAULT_PACKAGES = setOf(
-            "kotlin",
-            "kotlin.annotation",
-            "kotlin.collections",
-            "kotlin.comparisons",
-            "kotlin.io",
-            "kotlin.ranges",
-            "kotlin.sequences",
-            "kotlin.text"
-        )
-
         private val TYPE_ALIASES = mapOf(
             "CPointer<out CPointed>" to "COpaquePointer",
             "ByteVarOf<Byte>" to "ByteVar",
@@ -63,7 +49,7 @@ class KlibMetadataDecompiler(private val project: Project) {
         text = text.replace(Regex("""\h+>"""), ">").replace(Regex("""\h{2,}"""), " ")
 
         // Step 3: Shorten FQNs and collect imports
-        val (shortenedText, imports) = shortenFQNs(text)
+        val (shortenedText, imports) = KlibFqnShortener.shortenFqNames(project, text, originalPsi as? KtFile)
         val finalImports = imports.toMutableSet()
         text = shortenedText
 
@@ -205,77 +191,7 @@ class KlibMetadataDecompiler(private val project: Project) {
         return applyReplacements(text, replacements)
     }
 
-    private fun shortenFQNs(text: String): Pair<String, Set<String>> {
-        val ktFile = PsiFileFactory.getInstance(project).createFileFromText("temp.kt", KotlinLanguage.INSTANCE, text) as? KtFile
-            ?: return text to emptySet()
 
-        val imports = mutableSetOf<String>()
-        val replacements = mutableListOf<Triple<Int, Int, String>>()
-
-        PsiTreeUtil.collectElementsOfType(ktFile, KtUserType::class.java)
-            .filter { it.qualifier != null && it.parent !is KtUserType }
-            .forEach { outerType ->
-                val fqn = buildFQN(outerType).takeIf { '.' in it } ?: return@forEach
-                val info = resolveFqNameInfo(fqn)
-
-                if (!isDefaultImport(info.importPath)) imports += info.importPath
-                replacements += Triple(
-                    outerType.textRange.startOffset,
-                    outerType.referenceExpression?.textRange?.endOffset ?: outerType.textRange.endOffset,
-                    info.simpleName
-                )
-            }
-
-        PsiTreeUtil.collectElementsOfType(ktFile, KtDotQualifiedExpression::class.java)
-            .filter { it.parent !is KtDotQualifiedExpression }
-            .forEach { dotExpr ->
-                val fqn = dotExpr.text.replace(Regex("\\s+"), "").substringBefore('(')
-                if ('.' !in fqn || !fqn.matches(Regex("""[A-Za-z_][A-Za-z0-9_.]*"""))) return@forEach
-
-                val info = resolveFqNameInfo(fqn)
-                if (!isDefaultImport(info.importPath)) imports += info.importPath
-                val qualifierEnd = dotExpr.text.indexOf(info.simpleName)
-                if (qualifierEnd > 0) {
-                    replacements += Triple(dotExpr.textRange.startOffset, dotExpr.textRange.startOffset + qualifierEnd, "")
-                }
-            }
-
-        return applyReplacements(text, replacements) to imports
-    }
-
-    private fun resolveFqNameInfo(fqn: String): FqNameInfo {
-        val parts = fqn.split('.')
-        val firstUpper = parts.indexOfFirst { it.first().isUpperCase() }
-        return if (firstUpper >= 0) {
-            FqNameInfo(parts.drop(firstUpper).joinToString("."), parts.take(firstUpper + 1).joinToString("."))
-        } else {
-            FqNameInfo(parts.last(), fqn)
-        }
-    }
-
-    private fun applyReplacements(text: String, replacements: List<Triple<Int, Int, String>>): String {
-        var result = text
-        replacements.sortedByDescending { it.first }.forEach { (s, e, rep) ->
-            if (s <= result.length && e <= result.length) {
-                result = result.substring(0, s) + rep + result.substring(e)
-            }
-        }
-        return result
-    }
-
-    private fun buildFQN(userType: KtUserType): String {
-        val parts = ArrayDeque<String>()
-        var cur: KtUserType? = userType
-        while (cur != null) {
-            parts.addFirst(cur.referencedName ?: return "")
-            cur = cur.qualifier
-        }
-        return parts.joinToString(".")
-    }
-
-    private fun isDefaultImport(importPath: String): Boolean {
-        return importPath.substringBeforeLast('.', "") in KOTLIN_DEFAULT_PACKAGES
-    }
 
     private fun insertImports(text: String, imports: Set<String>): String {
         if (imports.isEmpty()) return text
@@ -354,6 +270,5 @@ class KlibMetadataDecompiler(private val project: Project) {
         return null
     }
 
-    private data class FqNameInfo(val simpleName: String, val importPath: String)
 
 }
