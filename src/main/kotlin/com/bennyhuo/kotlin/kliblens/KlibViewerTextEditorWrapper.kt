@@ -3,6 +3,7 @@ package com.bennyhuo.kotlin.kliblens
 import com.bennyhuo.kotlin.kliblens.file.KnmFile
 import com.bennyhuo.kotlin.kliblens.navigate.KlibLensNavigationCache
 import com.bennyhuo.kotlin.kliblens.navigate.KlibNavigationHandler
+import com.intellij.ide.structureView.StructureViewBuilder
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.NavigatableFileEditor
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
@@ -55,6 +56,10 @@ class KlibViewerTextEditorWrapper(
         }
 
         delegate.navigateTo(navigatable)
+    }
+
+    override fun getStructureViewBuilder(): StructureViewBuilder? {
+        return delegate.structureViewBuilder
     }
 
     override fun getFile(): VirtualFile {
