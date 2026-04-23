@@ -1,6 +1,7 @@
 package com.bennyhuo.kotlin.kliblens.metadata
 
 import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.kotlin.analysis.api.KaSession
@@ -14,6 +15,8 @@ import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtFile
+import org.jetbrains.kotlin.psi.KtImportDirective
+import org.jetbrains.kotlin.psi.KtPackageDirective
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtUserType
 
@@ -46,7 +49,9 @@ internal object KlibFqnShortener {
         allowAnalysisOnEdt {
             analyze(ktFile) {
                 PsiTreeUtil.collectElementsOfType(ktFile, KtUserType::class.java)
-                    .filter { it.qualifier != null && it.parent !is KtUserType }
+                    .filter {
+                        it.qualifier != null && it.parent !is KtUserType && isInPackageDirective(it)
+                    }
                     .forEach { outerType ->
                         val fqn = buildFqName(outerType).takeIf { '.' in it } ?: return@forEach
                         val info = fqNameCache.getOrPut(fqn) { resolveFqNameInfo(fqn, outerType) }
@@ -59,7 +64,9 @@ internal object KlibFqnShortener {
                     }
 
                 PsiTreeUtil.collectElementsOfType(ktFile, KtDotQualifiedExpression::class.java)
-                    .filter { it.parent !is KtDotQualifiedExpression }
+                    .filter {
+                        it.parent !is KtDotQualifiedExpression && isInPackageDirective(it)
+                    }
                     .forEach { dotExpr ->
                         val fqn = dotExpr.text.replace(Regex("\\s+"), "").substringBefore('(')
                         if ('.' !in fqn || !fqn.matches(Regex("""[A-Za-z_][A-Za-z0-9_.]*"""))) return@forEach
@@ -75,6 +82,9 @@ internal object KlibFqnShortener {
 
         return applyReplacements(text, replacements) to imports
     }
+
+    private fun isInPackageDirective(element: PsiElement?): Boolean =
+        PsiTreeUtil.getParentOfType(element, KtPackageDirective::class.java, KtImportDirective::class.java) == null
 
     private fun KaSession.resolveFqNameInfo(fqn: String, element: KtElement? = null): FqNameInfo {
         if (element != null) {
