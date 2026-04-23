@@ -42,6 +42,7 @@ internal object KlibFqnShortener {
             PsiFileFactory.getInstance(project).createFileFromText("temp.kt", KotlinLanguage.INSTANCE, text) as? KtFile
         } ?: return text to emptySet()
 
+        val currentPackage = ktFile.packageFqName.asString()
         val imports = mutableSetOf<String>()
         val replacements = mutableListOf<Triple<Int, Int, String>>()
         val fqNameCache = mutableMapOf<String, FqNameInfo>()
@@ -55,7 +56,7 @@ internal object KlibFqnShortener {
                     .forEach { outerType ->
                         val fqn = buildFqName(outerType).takeIf { '.' in it } ?: return@forEach
                         val info = fqNameCache.getOrPut(fqn) { resolveFqNameInfo(fqn, outerType) }
-                        if (!isDefaultImport(info.importPath)) imports += info.importPath
+                        if (!isRedundantImport(info.importPath, currentPackage)) imports += info.importPath
                         replacements += Triple(
                             outerType.textRange.startOffset,
                             outerType.referenceExpression?.textRange?.endOffset ?: outerType.textRange.endOffset,
@@ -71,7 +72,7 @@ internal object KlibFqnShortener {
                         val fqn = dotExpr.text.replace(Regex("\\s+"), "").substringBefore('(')
                         if ('.' !in fqn || !fqn.matches(Regex("""[A-Za-z_][A-Za-z0-9_.]*"""))) return@forEach
                         val info = fqNameCache.getOrPut(fqn) { resolveFqNameInfo(fqn, dotExpr) }
-                        if (!isDefaultImport(info.importPath)) imports += info.importPath
+                        if (!isRedundantImport(info.importPath, currentPackage)) imports += info.importPath
                         val qualifierEnd = dotExpr.text.indexOf(info.simpleName)
                         if (qualifierEnd > 0) {
                             replacements += Triple(dotExpr.textRange.startOffset, dotExpr.textRange.startOffset + qualifierEnd, "")
@@ -134,8 +135,10 @@ internal object KlibFqnShortener {
         return parts.joinToString(".")
     }
 
-    private fun isDefaultImport(importPath: String): Boolean {
-        return importPath.substringBeforeLast('.', "") in KOTLIN_DEFAULT_PACKAGES
+    private fun isRedundantImport(importPath: String, currentPackage: String): Boolean {
+        if (importPath == currentPackage) return true
+        val parent = importPath.substringBeforeLast('.', "")
+        return parent == currentPackage || parent in KOTLIN_DEFAULT_PACKAGES
     }
 }
 
