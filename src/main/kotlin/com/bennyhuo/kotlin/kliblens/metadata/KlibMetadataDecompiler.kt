@@ -36,11 +36,11 @@ class KlibMetadataDecompiler(private val project: Project) {
     }
 
     fun decompile(file: VirtualFile, extractor: KlibMetadataExtractor): String {
-        val originalPsi = PsiManager.getInstance(project).findFile(file)
-        val originalText = originalPsi?.text ?: ""
+        val originalPsi = PsiManager.getInstance(project).findFile(file) as? KtFile ?: return ""
+        val originalText = originalPsi.text
 
         // Step 1: Inject annotation values from metadata using original PSI offsets
-        var text = injectAnnotationValues(originalText, originalPsi as? KtFile, extractor)
+        var text = injectAnnotationValues(originalText, originalPsi, extractor)
 
         // Step 2: Remove decompiler comments
         text = removeDecompilerComments(text)
@@ -49,7 +49,7 @@ class KlibMetadataDecompiler(private val project: Project) {
         text = text.replace(Regex("""\h+>"""), ">").replace(Regex("""\h{2,}"""), " ")
 
         // Step 3: Shorten FQNs and collect imports
-        val (shortenedText, imports) = KlibFqnShortener.shortenFqNames(project, text, originalPsi as? KtFile)
+        val (shortenedText, imports) = KlibFqnShortener.shortenFqNames(project, text, originalPsi)
         val finalImports = imports.toMutableSet()
         text = shortenedText
 

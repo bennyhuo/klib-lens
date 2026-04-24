@@ -2,9 +2,8 @@ package com.bennyhuo.kotlin.kliblens.file
 
 import com.bennyhuo.kotlin.kliblens.metadata.KlibMetadataDecompiler
 import com.bennyhuo.kotlin.kliblens.metadata.KlibMetadataExtractor
-import com.bennyhuo.kotlin.kliblens.LOG
-import com.bennyhuo.kotlin.kliblens.module.NonNativeDanglingFileModule
 import com.bennyhuo.kotlin.kliblens.utils.invokeLater
+import com.bennyhuo.kotlin.kliblens.utils.setAnalysisModuleFrom
 import com.intellij.codeInsight.daemon.impl.analysis.FileHighlightingSetting
 import com.intellij.codeInsight.daemon.impl.analysis.HighlightLevelUtil
 import com.intellij.openapi.command.WriteCommandAction
@@ -18,12 +17,7 @@ import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.testFramework.LightVirtualFile
 import org.jetbrains.kotlin.analysis.api.KaExperimentalApi
 import org.jetbrains.kotlin.analysis.api.KaPlatformInterface
-import org.jetbrains.kotlin.analysis.api.platform.projectStructure.KaDanglingFileModuleImpl
-import org.jetbrains.kotlin.analysis.api.platform.projectStructure.KotlinProjectStructureProvider
-import org.jetbrains.kotlin.analysis.api.projectStructure.KaDanglingFileResolutionMode
-import org.jetbrains.kotlin.analysis.api.projectStructure.explicitModule
 import org.jetbrains.kotlin.idea.KotlinFileType
-import org.jetbrains.kotlin.platform.konan.NativePlatform
 import org.jetbrains.kotlin.psi.KtFile
 
 class KnmFile(
@@ -115,31 +109,7 @@ class KnmFile(
 
     @OptIn(KaExperimentalApi::class, KaPlatformInterface::class)
     private fun highlightFile() {
-        // Workaround: Create a custom KaDanglingFileModule that delegates to KaDanglingFileModuleImpl
-        // but overrides targetPlatform to avoid pure NativePlatform. This makes the session factory
-        // selector (LLFirSessionCache.createPlatformAwareSessionFactory) choose LLFirCommonSessionFactory
-        // instead of LLFirNativeSessionFactory, avoiding the buggy FirNativeOverrideChecker.
-        //
-        // This pattern is used by Kotlin itself in KaFirCompilerFacility.createJvmDanglingFileModule().
-        try {
-            val libraryModule = KotlinProjectStructureProvider.getModule(project, originalPsiFile, useSiteModule = null)
-            val baseModule = KaDanglingFileModuleImpl(
-                listOf(newPsiFile),
-                libraryModule,
-                KaDanglingFileResolutionMode.PREFER_SELF,
-            )
-
-            val isNativePlatform = libraryModule.targetPlatform.all { it is NativePlatform }
-            newPsiFile.explicitModule = if (isNativePlatform) {
-                // Wrap with overridden targetPlatform to avoid LLFirNativeSessionFactory
-                NonNativeDanglingFileModule(baseModule)
-            } else {
-                baseModule
-            }
-        } catch (e: Exception) {
-            LOG.warn("[KLIB-LENS] Failed to set up analysis context for $newFile", e)
-        }
-        
+        newPsiFile.setAnalysisModuleFrom(originalPsiFile)
         // Set highlighting level to ESSENTIAL to keep semantic colors but skip heavy inspections
         HighlightLevelUtil.forceRootHighlighting(newPsiFile, FileHighlightingSetting.ESSENTIAL)
     }

@@ -38,7 +38,7 @@ class KlibGotoDeclarationHandler : GotoDeclarationHandler {
         //    same 0_objclib.knm view where MyClass is declared). Without this, the IDE would open
         //    a new tab for the LightVirtualFile (0_objclib.kt) instead of navigating in-place.
         if (targetFile is LightVirtualFile && targetFile.originalFile?.isKnmFile() == true) {
-            val originalKnmFile = targetFile.originalFile!!
+            val originalKnmFile = targetFile.originalFile
             val project = sourceElement.project
             val originalPsiFile = PsiManager.getInstance(project).findFile(originalKnmFile) as? KtFile
                 ?: return null
