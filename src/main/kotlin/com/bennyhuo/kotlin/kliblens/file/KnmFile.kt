@@ -30,13 +30,19 @@ class KnmFile(
     val project: Project,
     val originalFile: VirtualFile
 )  {
-    
+
+    var isBeautified: Boolean = true
+        private set
+
+    var beautifiedText: String? = null
+        private set
+
     val originalPsiFile: KtFile by lazy {
         requireNotNull(PsiManager.getInstance(project).findFile(originalFile)) {
             "PsiFile not found for $newFile"
         } as KtFile
     }
-    
+
     val newFile: LightVirtualFile
     
     val newDocument: Document by lazy {
@@ -74,12 +80,31 @@ class KnmFile(
         return lightFile
     }
 
+    @OptIn(KaExperimentalApi::class)
+    fun toggleBeautification() {
+        isBeautified = !isBeautified
+        val targetText = if (isBeautified) beautifiedText ?: "" else originalPsiFile.text
+        
+        WriteCommandAction.runWriteCommandAction(project, "Toggle Klib Beautification", null, {
+            newFile.isWritable = true
+            newDocument.setText(targetText)
+            PsiDocumentManager.getInstance(project).commitDocument(newDocument)
+            
+            FileDocumentManager.getInstance().saveDocument(newDocument)
+            newFile.isWritable = false
+        })
+    }
+
     private fun formatFile() {
         WriteCommandAction.runWriteCommandAction(project, "Reformat Klib Code", null, {
             // Reformat using IntelliJ Code Style
             CodeStyleManager.getInstance(project).reformat(newPsiFile)
             // Sync PSI -> Document
             PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(newDocument)
+            
+            // Cache the beautified text
+            beautifiedText = newDocument.text
+            
             // Sync Document -> VirtualFile (crucial for OpenFileDescriptor)
             FileDocumentManager.getInstance().saveDocument(newDocument)
 
