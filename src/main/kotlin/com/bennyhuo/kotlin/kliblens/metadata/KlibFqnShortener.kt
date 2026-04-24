@@ -1,8 +1,9 @@
 package com.bennyhuo.kotlin.kliblens.metadata
 
+import com.bennyhuo.kotlin.kliblens.LOG
+import com.bennyhuo.kotlin.kliblens.utils.setAnalysisModuleFrom
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.analyze
@@ -10,7 +11,6 @@ import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.symbols.KaCallableSymbol
 import org.jetbrains.kotlin.analysis.api.symbols.KaClassLikeSymbol
-import org.jetbrains.kotlin.idea.KotlinLanguage
 import org.jetbrains.kotlin.idea.references.mainReference
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtElement
@@ -35,12 +35,9 @@ internal object KlibFqnShortener {
     )
 
     @OptIn(KaAllowAnalysisOnEdt::class)
-    fun shortenFqNames(project: Project, text: String, originalPsi: KtFile?): Pair<String, Set<String>> {
-        val ktFile = if (originalPsi != null) {
-            KtPsiFactory.contextual(originalPsi).createFile(text)
-        } else {
-            PsiFileFactory.getInstance(project).createFileFromText("temp.kt", KotlinLanguage.INSTANCE, text) as? KtFile
-        } ?: return text to emptySet()
+    fun shortenFqNames(project: Project, text: String, originalPsi: KtFile): Pair<String, Set<String>> {
+        val ktFile = KtPsiFactory.contextual(originalPsi).createFile(text)
+        ktFile.setAnalysisModuleFrom(originalPsi)
 
         val currentPackage = ktFile.packageFqName.asString()
         val imports = mutableSetOf<String>()
@@ -112,7 +109,7 @@ internal object KlibFqnShortener {
                     }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                LOG.warn("resolveFqNameInfo Error: $fqn", e)
             }
         }
 
