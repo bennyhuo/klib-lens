@@ -29,6 +29,7 @@
         <!-- Add your extensions here -->
         <fileEditorProvider implementation="com.bennyhuo.kotlin.kliblens.KlibViewerEditorProvider" />
         <gotoDeclarationHandler implementation="com.bennyhuo.kotlin.kliblens.navigate.KlibGotoDeclarationHandler"/>
+        <iw.actionProvider implementation="com.bennyhuo.kotlin.kliblens.KlibInspectionWidgetActionProvider" order="first"/>
     </extensions>
 
     <extensions defaultExtensionNs="org.jetbrains.kotlin">
