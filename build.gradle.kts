@@ -3,7 +3,7 @@ import java.io.FileInputStream
 
 plugins {
     id("java")
-    id("org.jetbrains.kotlin.jvm") version "2.3.10"
+    id("org.jetbrains.kotlin.jvm") version "2.5.0-RC"
     id("org.jetbrains.intellij.platform") version "2.20.1"
 }
 
