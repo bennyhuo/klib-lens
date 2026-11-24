@@ -4,7 +4,7 @@ import java.io.FileInputStream
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "2.3.10"
-    id("org.jetbrains.intellij.platform") version "2.14.0"
+    id("org.jetbrains.intellij.platform") version "2.20.1"
 }
 
 val localProperties = Properties()
@@ -14,7 +14,7 @@ if (localPropertiesFile.exists()) {
 }
 
 group = "com.bennyhuo.kotlin.kliblens"
-version = "1.1.5-253"
+version = "1.1.6-253"
 
 repositories {
     mavenCentral()
@@ -29,7 +29,7 @@ dependencies {
         if (!intellijLocalPath.isNullOrBlank() && file(intellijLocalPath).exists()) {
             local(intellijLocalPath)
         } else {
-            val intellijVersion = localProperties.getProperty("intellij.version") ?: "2026.1"
+            val intellijVersion = localProperties.getProperty("intellij.version") ?: "2026.3"
             intellijIdea(intellijVersion)
         }
         bundledPlugin("com.intellij.java")
@@ -52,7 +52,7 @@ intellijPlatform {
         }
         ideaVersion {
             sinceBuild = "253"
-            untilBuild = "262.*"
+            untilBuild = "263.*"
         }
         
         changeNotes = """
